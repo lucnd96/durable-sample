@@ -10,6 +10,9 @@ using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Microsoft.Azure;
+using Microsoft.Azure.Management.CosmosDB.Fluent;
+using Microsoft.Azure.Cosmos;
 
 namespace FunctionApp2
 {
@@ -32,6 +35,7 @@ namespace FunctionApp2
             byte[] data = Convert.FromBase64String(csvContent);
             string decodedString = System.Text.Encoding.UTF8.GetString(data);
             string[] dataArray = decodedString.Split(new[] { "\n" }, StringSplitOptions.None);
+            await InsertFileToCosmosDB(JsonConvert.SerializeObject(dataArray));
             string instanceId = await starter.StartNewAsync("FanOutFanIn", null, JsonConvert.SerializeObject(dataArray));
 
             log.LogInformation($"Started orchestration with ID = '{instanceId}'.");
@@ -70,5 +74,37 @@ namespace FunctionApp2
             }
             return result;
         }
+
+        [FunctionName("InsertFileToCosmosDB")]
+        public async static Task InsertFileToCosmosDB([ActivityTrigger] string jsonData)
+        {
+            CosmosClient cosmosClient = new CosmosClient("AccountEndpoint=https://cloud-common.documents.azure.com:443/;AccountKey=tGxjzHJjk50peP5cOddqsLTCn4BTelafzbCmxLsoSw9LjsGbd85rekPyymH9VYZokmEzjpU4AKEKUgMI5yPBFw==;");
+            Database database = cosmosClient.GetDatabase("LucND-Container");
+            Container container = database.GetContainer("LucND-Container");
+            FileModel file = new FileModel("001", "test.csv", jsonData);
+            await container.CreateItemAsync<FileModel>(file);
+        }
+
+           
+    }
+
+    public class FileModel
+    {
+        [JsonProperty(PropertyName = "id")]
+        public string ID { get; set; }
+
+        [JsonProperty(PropertyName = "filename")]
+        public string FileName { get; set; }
+
+        [JsonProperty(PropertyName ="content")]
+        public string Content { get; set; }
+
+        public FileModel(string id, string filename, string content)
+        {
+            this.ID = id;
+            this.FileName = filename;
+            this.Content = content;
+        }
+    
     }
 }
