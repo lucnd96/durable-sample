@@ -81,7 +81,9 @@ namespace FunctionApp2
             CosmosClient cosmosClient = new CosmosClient("AccountEndpoint=https://cloud-common.documents.azure.com:443/;AccountKey=tGxjzHJjk50peP5cOddqsLTCn4BTelafzbCmxLsoSw9LjsGbd85rekPyymH9VYZokmEzjpU4AKEKUgMI5yPBFw==;");
             Database database = cosmosClient.GetDatabase("LucND-Container");
             Container container = database.GetContainer("LucND-Container");
-            FileModel file = new FileModel("001", "test.csv", jsonData);
+            Random rnd = new Random();
+            string id = rnd.Next(0, 10000).ToString();
+            FileModel file = new FileModel(id, "test.csv", jsonData);
             await container.CreateItemAsync<FileModel>(file);
         }
 
